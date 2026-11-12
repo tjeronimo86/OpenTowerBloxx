@@ -93,13 +93,13 @@ class GameRenderer(
             floatArrayOf(0.9f, 0.9f, 0.9f), floatArrayOf(0.78f, 0.95f, 0.98f),
         )
         // Hochhaeuser mit Abstand zum Turm, damit Himmel und Tiefe sichtbar bleiben
-        repeat(70) {
+        repeat(95) {
             val z = -40f - rnd.nextFloat() * 110f
             val spread = 30f + -z * 1.1f
             var x = (rnd.nextFloat() - 0.5f) * 2f * spread
             // Hinter dem Turm eine Gasse frei lassen, damit Himmel und Tiefe zu sehen sind
             // Die Kamera schaut schraeg von rechts: die Sichtlinie hinter dem Turm liegt links
-            val gap = 7f + -z * 0.14f
+            val gap = 3.5f + -z * 0.07f
             val center = z * 0.354f
             if (kotlin.math.abs(x - center) < gap) x += if (x < center) -gap else gap
             val w = 5f + rnd.nextFloat() * 6f
@@ -108,6 +108,16 @@ class GameRenderer(
             city += Skyscraper(
                 x, z, w, 5f + rnd.nextFloat() * 6f, h, if (style == 1) floatArrayOf(1f, 1f, 1f) else tints[rnd.nextInt(tints.size)],
                 style, 1 + rnd.nextInt(3), rnd.nextInt(3),
+            )
+        }
+        // Niedrige Haeuser fuellen den Horizont, ohne den Himmel zu verdecken
+        repeat(90) {
+            val z = -30f - rnd.nextFloat() * 120f
+            val x = (rnd.nextFloat() - 0.5f) * 2f * (30f + -z * 1.1f)
+            val w = 4f + rnd.nextFloat() * 6f
+            city += Skyscraper(
+                x, z, w, 4f + rnd.nextFloat() * 6f, 5f + rnd.nextFloat() * 14f, tints[rnd.nextInt(tints.size)],
+                if (rnd.nextFloat() < 0.6f) 2 else 0, 1, if (rnd.nextFloat() < 0.35f) 2 else 0,
             )
         }
         city.sortBy { it.z }
