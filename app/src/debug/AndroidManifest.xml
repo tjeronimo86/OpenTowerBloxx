@@ -4,6 +4,7 @@
         <!-- Nur fuer die automatische Pruefung in tools/ci/verify.sh -->
         <activity
             android:name=".DebugPlayActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Tower" />

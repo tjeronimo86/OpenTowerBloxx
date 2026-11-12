@@ -283,7 +283,7 @@ class Game(val config: GameConfig, private val events: (Game, GameEvent) -> Unit
                 updateHanging(dt)
                 if (autoplay && phase == Phase.HANGING && phaseTime > 0.25f) {
                     val dx = predictLandingDx()
-                    if (dx != null && abs(dx - autoTarget) < 0.06f) drop()
+                    if (dx != null && abs(dx - autoTarget) < 0.1f) drop()
                 }
             }
             Phase.FALLING -> {
