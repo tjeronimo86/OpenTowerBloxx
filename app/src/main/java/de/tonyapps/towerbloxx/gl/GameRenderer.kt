@@ -236,7 +236,8 @@ class GameRenderer(
         val shakeX = if (g.shake > 0f) sin(g.time * 70f) * g.shake * 0.4f else 0f
         val shakeY = if (g.shake > 0f) cos(g.time * 63f) * g.shake * 0.3f else 0f
         val tx = g.camX + shakeX
-        val ty = g.camY + shakeY
+        // Im Querformat ist der Ausschnitt flacher: Blick etwas hoeher, damit der Kranblock sichtbar bleibt
+        val ty = g.camY + shakeY + if (aspect > 0.8f) 1.3f else 0f
         val ang = 0.34f
         eye[0] = tx + dist * sin(ang)
         eye[1] = ty + 2.6f
