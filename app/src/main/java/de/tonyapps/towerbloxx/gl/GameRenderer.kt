@@ -93,16 +93,18 @@ class GameRenderer(
             floatArrayOf(0.9f, 0.9f, 0.9f), floatArrayOf(0.78f, 0.95f, 0.98f),
         )
         // Hochhaeuser mit Abstand zum Turm, damit Himmel und Tiefe sichtbar bleiben
-        repeat(64) {
-            val z = -30f - rnd.nextFloat() * 90f
-            val spread = 30f + -z * 1.2f
+        repeat(70) {
+            val z = -40f - rnd.nextFloat() * 110f
+            val spread = 30f + -z * 1.1f
             var x = (rnd.nextFloat() - 0.5f) * 2f * spread
-            if (z > -50f && kotlin.math.abs(x) < 8f) x += if (x < 0) -10f else 10f
-            val w = 6f + rnd.nextFloat() * 8f
+            // Hinter dem Turm eine Gasse frei lassen, damit Himmel und Tiefe zu sehen sind
+            val gap = 6f + -z * 0.12f
+            if (kotlin.math.abs(x) < gap) x += if (x < 0) -gap else gap
+            val w = 5f + rnd.nextFloat() * 6f
             val h = 14f + rnd.nextFloat() * rnd.nextFloat() * 110f
             val style = rnd.nextInt(3)
             city += Skyscraper(
-                x, z, w, 6f + rnd.nextFloat() * 8f, h, if (style == 1) floatArrayOf(1f, 1f, 1f) else tints[rnd.nextInt(tints.size)],
+                x, z, w, 5f + rnd.nextFloat() * 6f, h, if (style == 1) floatArrayOf(1f, 1f, 1f) else tints[rnd.nextInt(tints.size)],
                 style, 1 + rnd.nextInt(3), rnd.nextInt(3),
             )
         }

@@ -445,7 +445,7 @@ private fun PlayerHud(hud: Hud, config: GameConfig, player: Int) {
         }
 
         GainPopup(hud, Modifier.align(Alignment.TopStart).padding(top = top + if (narrow) 110.dp else 64.dp, start = 14.dp))
-        PerfectBanner(hud, Modifier.align(Alignment.Center).offset(y = -h * 0.12f))
+        PerfectBanner(hud, Modifier.align(Alignment.Center).offset(y = if (narrow) 0.dp else -h * 0.12f))
 
         if (hud.hint) {
             Text(
