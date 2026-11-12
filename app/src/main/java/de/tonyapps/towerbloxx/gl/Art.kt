@@ -551,32 +551,69 @@ object Art {
         return bmp
     }
 
-    /** Wiederholbare Hochhausfassade, 4 x 8 Fenster. */
-    fun skyscraper(night: Boolean): Bitmap {
+    /** Wiederholbare Hochhausfassade, 4 x 8 Felder. style: 0 weisses Raster, 1 Glas, 2 warm. */
+    fun skyscraper(night: Boolean, style: Int): Bitmap {
         val bmp = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
-        val rnd = Random(if (night) 17 else 3)
-        c.drawRect(0f, 0f, 512f, 1024f, fill(if (night) 0xFF1B2440.toInt() else 0xFFF3F5F9.toInt()))
-        for (r in 0 until 8) for (k in 0 until 4) {
-            val x = k * 128f
-            val y = r * 128f
-            val win = RectF(x + 16f, y + 20f, x + 112f, y + 112f)
-            if (night) {
-                val lit = rnd.nextFloat() < 0.42f
-                if (lit) {
+        val rnd = Random(if (night) 17 else 3 + style)
+        if (night) {
+            c.drawRect(0f, 0f, 512f, 1024f, fill(0xFF1B2440.toInt()))
+            for (r in 0 until 8) for (k in 0 until 4) {
+                val x = k * 128f
+                val y = r * 128f
+                val win = RectF(x + 16f, y + 20f, x + 112f, y + 112f)
+                if (rnd.nextFloat() < 0.42f) {
                     val warm = if (rnd.nextFloat() < 0.7f) 0xFFFFD27A.toInt() else 0xFFBFE6FF.toInt()
                     c.drawRect(win, vGrad(win.top, win.bottom, light(warm, 0.3f), warm))
                 } else {
                     c.drawRect(win, vGrad(win.top, win.bottom, 0xFF2E3F6B.toInt(), 0xFF223055.toInt()))
                 }
-            } else {
-                val top = mix(0xFFCDEBFF.toInt(), 0xFFFFFFFF.toInt(), rnd.nextFloat() * 0.4f)
-                c.drawRect(win, vGrad(win.top, win.bottom, top, 0xFF5E9FD8.toInt()))
-                c.drawRect(win.left, win.top, win.left + 30f, win.bottom, fill(alpha(Color.WHITE, 0.25f)))
+                c.drawRect(x + 62f, win.top, x + 66f, win.bottom, fill(alpha(Color.BLACK, 0.5f)))
+                c.drawRect(x, y + 112f, x + 128f, y + 128f, fill(alpha(Color.BLACK, 0.3f)))
             }
-            c.drawRect(x + 62f, win.top, x + 66f, win.bottom, fill(alpha(if (night) Color.BLACK else 0xFF6B7C93.toInt(), 0.5f)))
-            c.drawRect(x, y + 112f, x + 128f, y + 128f, fill(alpha(Color.BLACK, if (night) 0.3f else 0.1f)))
+            return bmp
         }
+        when (style) {
+            1 -> {
+                // Glasturm: durchgehende blaue Scheiben, Himmel spiegelt sich schraeg
+                c.drawRect(0f, 0f, 512f, 1024f, vGrad(0f, 1024f, 0xFF9FD4FF.toInt(), 0xFF3F86D6.toInt()))
+                for (k in 0 until 6) {
+                    val x0 = -200f + k * 180f
+                    val band = Path().apply { moveTo(x0, 1024f); lineTo(x0 + 90f, 1024f); lineTo(x0 + 390f, 0f); lineTo(x0 + 300f, 0f); close() }
+                    c.drawPath(band, fill(alpha(Color.WHITE, 0.16f)))
+                }
+                for (k in 0..4) c.drawRect(k * 128f - 4f, 0f, k * 128f + 4f, 1024f, fill(0xFFE8F2FF.toInt()))
+                for (r in 0..8) c.drawRect(0f, r * 128f - 3f, 512f, r * 128f + 3f, fill(alpha(0xFF2A5A9A.toInt(), 0.6f)))
+            }
+            2 -> {
+                // Warme Fassade mit Lochfenstern
+                c.drawRect(0f, 0f, 512f, 1024f, fill(0xFFF6E7D2.toInt()))
+                for (r in 0 until 8) for (k in 0 until 4) {
+                    val x = k * 128f
+                    val y = r * 128f
+                    val win = RectF(x + 30f, y + 26f, x + 98f, y + 104f)
+                    c.drawRect(win.left - 6f, win.top - 6f, win.right + 6f, win.bottom + 10f, fill(0xFFFFFAF0.toInt()))
+                    c.drawRect(win, vGrad(win.top, win.bottom, 0xFFCDEBFF.toInt(), 0xFF5E9FD8.toInt()))
+                    c.drawRect(win.left, win.top, win.left + 18f, win.bottom, fill(alpha(Color.WHITE, 0.3f)))
+                    c.drawRect(win.left - 6f, win.bottom + 4f, win.right + 6f, win.bottom + 10f, fill(alpha(Color.BLACK, 0.15f)))
+                }
+            }
+            else -> {
+                c.drawRect(0f, 0f, 512f, 1024f, fill(0xFFF3F5F9.toInt()))
+                for (r in 0 until 8) for (k in 0 until 4) {
+                    val x = k * 128f
+                    val y = r * 128f
+                    val win = RectF(x + 16f, y + 20f, x + 112f, y + 112f)
+                    val top = mix(0xFFCDEBFF.toInt(), 0xFFFFFFFF.toInt(), rnd.nextFloat() * 0.4f)
+                    c.drawRect(win, vGrad(win.top, win.bottom, top, 0xFF5E9FD8.toInt()))
+                    c.drawRect(win.left, win.top, win.left + 30f, win.bottom, fill(alpha(Color.WHITE, 0.25f)))
+                    c.drawRect(x + 62f, win.top, x + 66f, win.bottom, fill(alpha(0xFF6B7C93.toInt(), 0.5f)))
+                    c.drawRect(x, y + 112f, x + 128f, y + 128f, fill(alpha(Color.BLACK, 0.1f)))
+                }
+            }
+        }
+        // Senkrechte Kanten betonen die Hoehe
+        c.drawRect(0f, 0f, 10f, 1024f, fill(alpha(Color.WHITE, 0.35f)))
         return bmp
     }
 

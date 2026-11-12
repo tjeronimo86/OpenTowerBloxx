@@ -1,5 +1,11 @@
 # Update-Verlauf
 
+## 1.2 – 12. November 2026
+- Optik näher am Original: Kamera dichter am Turm mit stärkerer Perspektive
+- Stockwerke in echtem 3D: vorstehende Fensterrahmen, Fensterbänke, Blumenkästen, Erker, Vordächer und Ecksäulen
+- Abwechslungsreichere Skyline: Glastürme, abgestufte Hochhäuser, Antennen und Spitzdächer
+- Kombo-Leiste mit Stern und Namensschilder an den Rekordlinien
+
 ## 1.1 – 12. November 2026
 - Ab etwa 150 Stockwerken geht es in den Weltraum: Sterne, Planeten, Asteroiden und Astronauten
 - Baustelle am Start mit Bauzaun, Bauarbeitern, Pylonen und Strommast

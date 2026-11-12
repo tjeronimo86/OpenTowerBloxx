@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2 – November 12, 2026
+- Look closer to the original: camera nearer to the tower with stronger perspective
+- Floors in real 3D: protruding window frames, sills, flower boxes, bay windows, canopies and corner columns
+- More varied skyline: glass towers, stepped high-rises, antennas and pointed roofs
+- Combo bar with a star and name tags on the record lines
+
 ## 1.1 – November 12, 2026
 - From about 150 floors you reach space: stars, planets, asteroids and astronauts
 - Construction site at the start with fence, workers, traffic cones and a power pole

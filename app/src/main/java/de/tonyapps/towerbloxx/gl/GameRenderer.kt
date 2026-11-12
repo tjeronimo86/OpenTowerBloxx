@@ -40,8 +40,10 @@ class GameRenderer(
     private lateinit var sky: Program
     private var quad = 0
 
-    private lateinit var blockMesh: Mesh
-    private lateinit var doorMesh: Mesh
+    private val blockMeshes = arrayOfNulls<Mesh>(Kind.entries.size)
+    private val doorMeshes = arrayOfNulls<Mesh>(Kind.entries.size)
+    private fun blockMesh(k: Kind) = blockMeshes[k.ordinal]!!
+    private fun doorMesh(k: Kind) = doorMeshes[k.ordinal]!!
     private lateinit var roofMesh: Mesh
     private lateinit var cube: Mesh
     private lateinit var metalCube: Mesh
@@ -52,7 +54,7 @@ class GameRenderer(
     private val kindTex = IntArray(Kind.entries.size)
     private var miscTex = 0
     private var grassTex = 0
-    private var dayTowerTex = 0
+    private val dayTowerTex = IntArray(3)
     private var nightTowerTex = 0
     private var spriteTex = 0
 
@@ -70,7 +72,11 @@ class GameRenderer(
     private val right = FloatArray(3)
     private val up = FloatArray(3)
 
-    private class Skyscraper(val x: Float, val z: Float, val w: Float, val d: Float, val h: Float, val tint: FloatArray)
+    /** style: 0 weisses Raster, 1 Glas, 2 warm; top: 0 flach, 1 Antenne, 2 Spitzdach */
+    private class Skyscraper(
+        val x: Float, val z: Float, val w: Float, val d: Float, val h: Float, val tint: FloatArray,
+        val style: Int, val tiers: Int, val top: Int,
+    )
     private class Cloud(val x: Float, val y: Float, val z: Float, val size: Float, val cell: Int, val speed: Float)
 
     private val city = ArrayList<Skyscraper>()
@@ -94,7 +100,11 @@ class GameRenderer(
             if (z > -50f && kotlin.math.abs(x) < 8f) x += if (x < 0) -10f else 10f
             val w = 6f + rnd.nextFloat() * 8f
             val h = 14f + rnd.nextFloat() * rnd.nextFloat() * 110f
-            city += Skyscraper(x, z, w, 6f + rnd.nextFloat() * 8f, h, tints[rnd.nextInt(tints.size)])
+            val style = rnd.nextInt(3)
+            city += Skyscraper(
+                x, z, w, 6f + rnd.nextFloat() * 8f, h, if (style == 1) floatArrayOf(1f, 1f, 1f) else tints[rnd.nextInt(tints.size)],
+                style, 1 + rnd.nextInt(3), rnd.nextInt(3),
+            )
         }
         city.sortBy { it.z }
         var y = 6f
@@ -141,8 +151,10 @@ class GameRenderer(
         val corners = floatArrayOf(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f)
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, corners.size * 4, floatBuffer(corners), GLES30.GL_STATIC_DRAW)
 
-        blockMesh = block(door = false)
-        doorMesh = block(door = true)
+        for (k in Kind.entries) {
+            blockMeshes[k.ordinal] = block(k, door = false)
+            doorMeshes[k.ordinal] = block(k, door = true)
+        }
         roofMesh = roof()
         cube = MeshBuilder().apply { box(-0.5f, 0f, -0.5f, 0.5f, 1f, 0.5f, Uv.FULL) }.build()
         metalCube = MeshBuilder().apply { box(-0.5f, 0f, -0.5f, 0.5f, 1f, 0.5f, Art.UV_METAL) }.build()
@@ -161,8 +173,8 @@ class GameRenderer(
         for (k in Kind.entries) kindTex[k.ordinal] = Tex.upload(Art.blockAtlas(k))
         miscTex = Tex.upload(Art.miscAtlas())
         grassTex = Tex.upload(Art.grass(), repeat = true)
-        dayTowerTex = Tex.upload(Art.skyscraper(false), repeat = true)
-        nightTowerTex = Tex.upload(Art.skyscraper(true), repeat = true)
+        for (k in 0 until 3) dayTowerTex[k] = Tex.upload(Art.skyscraper(false, k), repeat = true)
+        nightTowerTex = Tex.upload(Art.skyscraper(true, 0), repeat = true)
         spriteTex = Tex.upload(Art.sprites())
 
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
@@ -172,13 +184,82 @@ class GameRenderer(
         lastNanos = 0L
     }
 
-    private fun block(door: Boolean): Mesh = MeshBuilder().apply {
+    /**
+     * Ein Stockwerk: Koerper mit Fassade, Ecksaeulen, Gesims oben, Sockel unten
+     * und echte 3D-Vorspruenge fuer Fensterrahmen, Simse, Blumenkaesten und Erker.
+     */
+    private fun block(kind: Kind, door: Boolean): Mesh = MeshBuilder().apply {
         val face = if (door) Art.UV_DOOR else Art.UV_FACADE
         box(-1f, 0.05f, -1f, 1f, 0.86f, 1f, face, Art.UV_TOP, Art.UV_STONE)
-        // Gesims oben, Sockelleiste unten
-        box(-1.08f, 0.86f, -1.08f, 1.08f, 1f, 1.08f, Art.UV_STONE, Art.UV_TOP, Art.UV_STONE)
-        box(-1.04f, 0f, -1.04f, 1.04f, 0.05f, 1.04f, Art.UV_STONE, Art.UV_STONE, Art.UV_STONE)
+        // Gesims oben mit Ueberstand, Sockelleiste unten
+        box(-1.1f, 0.86f, -1.1f, 1.1f, 1f, 1.1f, Art.UV_STONE, Art.UV_TOP, Art.UV_STONE)
+        box(-1.05f, 0f, -1.05f, 1.05f, 0.06f, 1.05f, Art.UV_STONE, Art.UV_STONE, Art.UV_STONE)
+        // Ecksaeulen machen die Kanten rund und kraeftig
+        for (sx in listOf(-1f, 1f)) for (sz in listOf(-1f, 1f)) {
+            val x0 = if (sx < 0) -1.05f else 0.89f
+            val z0 = if (sz < 0) -1.05f else 0.89f
+            box(x0, 0.06f, z0, x0 + 0.16f, 0.86f, z0 + 0.16f, Art.UV_STONE, Art.UV_STONE, Art.UV_STONE)
+        }
+        val parts = if (door) doorParts(kind) else windowParts(kind)
+        // Vier Seiten: Normale und Richtung "nach rechts", von aussen gesehen
+        val sides = listOf(
+            floatArrayOf(0f, 0f, 1f, 1f, 0f, 0f),
+            floatArrayOf(1f, 0f, 0f, 0f, 0f, -1f),
+            floatArrayOf(0f, 0f, -1f, -1f, 0f, 0f),
+            floatArrayOf(-1f, 0f, 0f, 0f, 0f, 1f),
+        )
+        for (sd in sides) for (pr in parts) protrude(this, sd, face, pr)
     }.build()
+
+    /** Vorsprung ueber einem Fassadenbereich in Pixeln (x0, y0, x1, y1, Tiefe). */
+    private fun protrude(mb: MeshBuilder, sd: FloatArray, face: Uv, r: FloatArray) {
+        val a0 = -1f + 2f * r[0] / 1024f
+        val a1 = -1f + 2f * r[2] / 1024f
+        val y1 = 0.05f + (1f - r[1] / 512f) * 0.81f
+        val y0 = 0.05f + (1f - r[3] / 512f) * 0.81f
+        val d = r[4]
+        fun p(a: Float, y: Float, dd: Float) = floatArrayOf(sd[3] * a + sd[0] * (1f + dd), y, sd[5] * a + sd[2] * (1f + dd))
+        val n = floatArrayOf(sd[0], sd[1], sd[2])
+        val t = floatArrayOf(sd[3], sd[4], sd[5])
+        val uv = Uv(
+            face.u0 + (face.u1 - face.u0) * r[0] / 1024f, face.v0 + (face.v1 - face.v0) * r[1] / 512f,
+            face.u0 + (face.u1 - face.u0) * r[2] / 1024f, face.v0 + (face.v1 - face.v0) * r[3] / 512f,
+        )
+        val st = Art.UV_STONE
+        mb.quad(p(a0, y0, d), p(a1, y0, d), p(a1, y1, d), p(a0, y1, d), n, uv)
+        mb.quad(p(a0, y1, d), p(a1, y1, d), p(a1, y1, 0f), p(a0, y1, 0f), floatArrayOf(0f, 1f, 0f), st)
+        mb.quad(p(a0, y0, 0f), p(a1, y0, 0f), p(a1, y0, d), p(a0, y0, d), floatArrayOf(0f, -1f, 0f), st)
+        mb.quad(p(a1, y0, d), p(a1, y0, 0f), p(a1, y1, 0f), p(a1, y1, d), t, st)
+        mb.quad(p(a0, y0, 0f), p(a0, y0, d), p(a0, y1, d), p(a0, y1, 0f), floatArrayOf(-t[0], -t[1], -t[2]), st)
+    }
+
+    /** Lage der Fenster auf der Fassadentextur, passend zu Art.facade. */
+    private fun windowParts(kind: Kind): List<FloatArray> = when (kind) {
+        Kind.GREEN -> listOf(
+            floatArrayOf(88f, 82f, 936f, 422f, 0.17f), // grosser Glaserker
+            floatArrayOf(80f, 422f, 944f, 444f, 0.22f), // Sims darunter
+        )
+        Kind.BLUE -> listOf(
+            floatArrayOf(149f, 100f, 451f, 380f, 0.06f), floatArrayOf(573f, 100f, 875f, 380f, 0.06f),
+            floatArrayOf(87f, 114f, 147f, 378f, 0.035f), floatArrayOf(453f, 114f, 511f, 378f, 0.035f),
+            floatArrayOf(513f, 114f, 571f, 378f, 0.035f), floatArrayOf(877f, 114f, 937f, 378f, 0.035f),
+            floatArrayOf(147f, 380f, 453f, 404f, 0.11f), floatArrayOf(571f, 380f, 877f, 404f, 0.11f),
+        )
+        else -> listOf(
+            // Simse mit Blumenkaesten unter den Bogenfenstern, Schlusssteine oben
+            floatArrayOf(153f, 400f, 447f, 424f, 0.11f), floatArrayOf(577f, 400f, 871f, 424f, 0.11f),
+            floatArrayOf(181f, 368f, 419f, 402f, 0.15f), floatArrayOf(605f, 368f, 843f, 402f, 0.15f),
+            floatArrayOf(278f, 84f, 322f, 120f, 0.05f), floatArrayOf(702f, 84f, 746f, 120f, 0.05f),
+        )
+    }
+
+    private fun doorParts(kind: Kind): List<FloatArray> = buildList {
+        add(floatArrayOf(361f, 124f, 663f, 470f, 0.05f)) // Tuerrahmen
+        if (kind == Kind.BLUE || kind == Kind.GREEN) add(floatArrayOf(300f, 118f, 724f, 192f, 0.3f)) // Vordach
+        add(floatArrayOf(299f, 228f, 335f, 288f, 0.08f)) // Laternen
+        add(floatArrayOf(689f, 228f, 725f, 288f, 0.08f))
+        for (cx in listOf(190f, 834f)) add(floatArrayOf(cx - 100f, 368f, cx + 100f, 392f, 0.08f)) // kleine Simse
+    }
 
     private fun roof(): Mesh = MeshBuilder().apply {
         val r = 1.15f
@@ -229,10 +310,10 @@ class GameRenderer(
 
     private fun drawGame(g: Game, vw: Int, vh: Int): ViewInfo {
         val aspect = vw.toFloat() / vh
-        val fov = 42f
+        val fov = 50f
         val halfTan = tan(Math.toRadians(fov / 2.0)).toFloat()
         // Schmale Ausschnitte (Party) brauchen mehr Abstand, damit der Kran ins Bild passt
-        val dist = max(15f, 3.0f / (halfTan * aspect))
+        val dist = max(11f, 2.35f / (halfTan * aspect))
         val shakeX = if (g.shake > 0f) sin(g.time * 70f) * g.shake * 0.4f else 0f
         val shakeY = if (g.shake > 0f) cos(g.time * 63f) * g.shake * 0.3f else 0f
         val tx = g.camX + shakeX
@@ -288,17 +369,48 @@ class GameRenderer(
 
         val viewBottom = g.camY - 10f
 
-        // Stadt im Hintergrund
-        setUnlit(if (night) 0.75f else 0f)
-        bind(if (night) nightTowerTex else dayTowerTex)
+        // Stadt im Hintergrund: abgestufte Hochhaeuser mit Antennen und Spitzdaechern
         for (s in city) {
             if (s.h < viewBottom - 20f) continue
-            Matrix.setIdentityM(model, 0)
-            Matrix.translateM(model, 0, s.x + g.camX * 0.3f, 0f, s.z)
-            Matrix.scaleM(model, 0, s.w, s.h, s.d)
+            val bx = s.x + g.camX * 0.3f
+            var y = 0f
+            val shares = when (s.tiers) { 1 -> floatArrayOf(1f); 2 -> floatArrayOf(0.72f, 0.28f); else -> floatArrayOf(0.6f, 0.25f, 0.15f) }
+            var w = s.w
+            var d = s.d
+            setUnlit(if (night) 0.75f else 0f)
+            bind(if (night) nightTowerTex else dayTowerTex[s.style])
             tint(s.tint[0], s.tint[1], s.tint[2])
-            uvScale(s.w / 4f, s.h / 8f)
-            drawMesh(cube)
+            for (share in shares) {
+                val h = s.h * share
+                Matrix.setIdentityM(model, 0)
+                Matrix.translateM(model, 0, bx, y, s.z)
+                Matrix.scaleM(model, 0, w, h, d)
+                uvScale(w / 4f, h / 8f)
+                drawMesh(cube)
+                y += h
+                w *= 0.74f
+                d *= 0.74f
+            }
+            setUnlit(0f)
+            uvScale(1f, 1f)
+            when (s.top) {
+                1 -> {
+                    bind(miscTex)
+                    tint(0.85f, 0.87f, 0.92f)
+                    Matrix.setIdentityM(model, 0)
+                    Matrix.translateM(model, 0, bx, y, s.z)
+                    Matrix.scaleM(model, 0, w * 0.12f, s.h * 0.18f, w * 0.12f)
+                    drawMesh(metalCube)
+                }
+                2 -> {
+                    bind(miscTex)
+                    tint(1f, 1f, 1f)
+                    Matrix.setIdentityM(model, 0)
+                    Matrix.translateM(model, 0, bx, y + 0.08f * w / 2.3f, s.z)
+                    Matrix.scaleM(model, 0, w / 2.3f, w * 0.9f, d / 2.3f)
+                    drawMesh(roofMesh)
+                }
+            }
         }
         setUnlit(0f)
         uvScale(1f, 1f)
@@ -330,7 +442,7 @@ class GameRenderer(
                 val s = 1f - 0.12f * f.squash * sin(f.squash * PI.toFloat())
                 Matrix.scaleM(model, 0, 1f + (1f - s) * 0.5f, s, 1f + (1f - s) * 0.5f)
             }
-            drawMesh(if (f.door) doorMesh else blockMesh)
+            drawMesh(if (f.door) doorMesh(f.kind) else blockMesh(f.kind))
         }
 
         // Dach
@@ -348,7 +460,7 @@ class GameRenderer(
             Matrix.setIdentityM(model, 0)
             Matrix.translateM(model, 0, g.bx, g.by, 0f)
             Matrix.rotateM(model, 0, Math.toDegrees(g.brot.toDouble()).toFloat(), 0f, 0f, 1f)
-            drawMesh(if (g.floors.isEmpty()) doorMesh else blockMesh)
+            drawMesh(if (g.floors.isEmpty()) doorMesh(g.blockKind) else blockMesh(g.blockKind))
             if (g.phase != Game.Phase.FALLING) drawRope(g)
         }
 
@@ -359,7 +471,7 @@ class GameRenderer(
             Matrix.translateM(model, 0, d.x, d.y + 0.5f, 0f)
             Matrix.rotateM(model, 0, Math.toDegrees(d.rot.toDouble()).toFloat(), 0f, 0f, 1f)
             Matrix.translateM(model, 0, 0f, -0.5f, 0f)
-            drawMesh(blockMesh)
+            drawMesh(blockMesh(d.kind))
         }
 
         drawSprites(g, fogColor)

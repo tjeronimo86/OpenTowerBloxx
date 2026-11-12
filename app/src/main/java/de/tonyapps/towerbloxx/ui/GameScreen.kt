@@ -358,11 +358,18 @@ private fun PlayerHud(hud: Hud, config: GameConfig, player: Int) {
                 )
             }
         }
+        // Namensschild wie im Original: weisse Plakette rechts an der Linie
         for ((label, y) in hud.markers) {
             Text(
-                label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black,
-                style = TextStyle(shadow = Shadow(Color.Black.copy(alpha = 0.7f), Offset(0f, 2f), 4f)),
-                modifier = Modifier.align(Alignment.TopEnd).offset(y = h * y - 22.dp).padding(end = 10.dp),
+                label, color = Palette.Ink, fontSize = 12.sp, fontWeight = FontWeight.Black,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = h * y - 13.dp)
+                    .padding(end = 8.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(Color.White)
+                    .border(2.dp, Palette.Ink, RoundedCornerShape(9.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
 
@@ -452,8 +459,16 @@ private fun PlayerHud(hud: Hud, config: GameConfig, player: Int) {
 
 @Composable
 private fun ComboBar(fill: Float, combo: Int) {
+    Box(contentAlignment = Alignment.CenterStart) {
+        ComboTrack(fill, combo, Modifier.padding(start = 22.dp))
+        StarIcon(true, Modifier.size(40.dp))
+    }
+}
+
+@Composable
+private fun ComboTrack(fill: Float, combo: Int, modifier: Modifier) {
     Box(
-        Modifier
+        modifier
             .widthIn(min = 120.dp, max = 220.dp)
             .fillMaxWidth()
             .height(22.dp)
