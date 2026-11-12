@@ -21,6 +21,7 @@ class DebugPlayActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val mode = intent.getStringExtra("mode") ?: "quick"
+        de.tonyapps.towerbloxx.gl.DebugFlags.simSteps = intent.getIntExtra("steps", 4)
         when (intent.getStringExtra("theme")) {
             "night" -> Store.changeTheme(ThemeMode.DARK)
             "day" -> Store.changeTheme(ThemeMode.LIGHT)
@@ -35,7 +36,7 @@ class DebugPlayActivity : ComponentActivity() {
             "settings" -> Screen.Settings
             "challenges" -> Screen.Challenge
             "menu" -> Screen.Menu
-            else -> Screen.Play(listOf(Modes.quick().copy(seed = 7)))
+            else -> Screen.Play(listOf(Modes.quick().copy(seed = 7, startFloors = intent.getIntExtra("floors", 0))))
         }
         setContent { TowerTheme { TowerApp(start, autoplay = true) } }
     }

@@ -17,6 +17,11 @@ import kotlin.math.sqrt
 import kotlin.math.tan
 import kotlin.random.Random
 
+/** Nur fuer die Emulator-Pruefung: dort laeuft GL so langsam, dass das Spiel sonst in Zeitlupe laeuft. */
+object DebugFlags {
+    @Volatile var simSteps = 1
+}
+
 /** Was das HUD je Spieler wissen muss; Bildschirmanteile 0..1 innerhalb des eigenen Ausschnitts. */
 data class ViewInfo(val markerY: List<Float>)
 
@@ -77,15 +82,19 @@ class GameRenderer(
     init {
         val rnd = Random(2024)
         val tints = listOf(
-            floatArrayOf(0.78f, 0.88f, 1f), floatArrayOf(0.95f, 0.95f, 0.98f), floatArrayOf(1f, 0.86f, 0.9f),
-            floatArrayOf(0.85f, 0.95f, 0.88f), floatArrayOf(1f, 0.93f, 0.8f), floatArrayOf(0.8f, 0.82f, 0.95f),
+            floatArrayOf(0.82f, 0.9f, 1f), floatArrayOf(0.97f, 0.97f, 0.99f), floatArrayOf(1f, 0.85f, 0.88f),
+            floatArrayOf(0.86f, 0.96f, 0.88f), floatArrayOf(1f, 0.92f, 0.78f), floatArrayOf(0.84f, 0.84f, 0.96f),
+            floatArrayOf(0.9f, 0.9f, 0.9f), floatArrayOf(0.78f, 0.95f, 0.98f),
         )
-        repeat(70) {
-            val z = -14f - rnd.nextFloat() * 70f
-            val x = (rnd.nextFloat() - 0.5f) * (40f + -z * 1.4f)
-            val w = 4f + rnd.nextFloat() * 6f
-            val h = 8f + rnd.nextFloat() * rnd.nextFloat() * 90f
-            city += Skyscraper(x, z, w, 4f + rnd.nextFloat() * 6f, h, tints[rnd.nextInt(tints.size)])
+        // Hochhaeuser mit Abstand zum Turm, damit Himmel und Tiefe sichtbar bleiben
+        repeat(64) {
+            val z = -30f - rnd.nextFloat() * 90f
+            val spread = 30f + -z * 1.2f
+            var x = (rnd.nextFloat() - 0.5f) * 2f * spread
+            if (z > -50f && kotlin.math.abs(x) < 8f) x += if (x < 0) -10f else 10f
+            val w = 6f + rnd.nextFloat() * 8f
+            val h = 14f + rnd.nextFloat() * rnd.nextFloat() * 110f
+            city += Skyscraper(x, z, w, 6f + rnd.nextFloat() * 8f, h, tints[rnd.nextInt(tints.size)])
         }
         city.sortBy { it.z }
         var y = 6f
@@ -195,7 +204,7 @@ class GameRenderer(
         val now = System.nanoTime()
         val dt = if (lastNanos == 0L) 0f else ((now - lastNanos) / 1e9f)
         lastNanos = now
-        games.forEach { it.update(dt) }
+        repeat(DebugFlags.simSteps) { games.forEach { it.update(dt) } }
 
         GLES30.glViewport(0, 0, width, height)
         GLES30.glClearColor(0f, 0f, 0f, 1f)
@@ -223,7 +232,7 @@ class GameRenderer(
         val fov = 42f
         val halfTan = tan(Math.toRadians(fov / 2.0)).toFloat()
         // Schmale Ausschnitte (Party) brauchen mehr Abstand, damit der Kran ins Bild passt
-        val dist = max(16f, 3.3f / (halfTan * aspect))
+        val dist = max(15f, 3.0f / (halfTan * aspect))
         val shakeX = if (g.shake > 0f) sin(g.time * 70f) * g.shake * 0.4f else 0f
         val shakeY = if (g.shake > 0f) cos(g.time * 63f) * g.shake * 0.3f else 0f
         val tx = g.camX + shakeX
@@ -270,7 +279,7 @@ class GameRenderer(
         }
         GLES30.glUniform3f(lit.u("uFogColor"), fogColor[0], fogColor[1], fogColor[2])
         GLES30.glUniform3f(lit.u("uEye"), eye[0], eye[1], eye[2])
-        GLES30.glUniform2f(lit.u("uFog"), 25f, 150f)
+        GLES30.glUniform2f(lit.u("uFog"), 30f, 190f)
         GLES30.glUniform1i(lit.u("uTex"), 0)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glEnable(GLES30.GL_CULL_FACE)
@@ -284,7 +293,7 @@ class GameRenderer(
         for (s in city) {
             if (s.h < viewBottom - 20f) continue
             Matrix.setIdentityM(model, 0)
-            Matrix.translateM(model, 0, s.x + g.camX * 0.15f, 0f, s.z)
+            Matrix.translateM(model, 0, s.x + g.camX * 0.3f, 0f, s.z)
             Matrix.scaleM(model, 0, s.w, s.h, s.d)
             tint(s.tint[0], s.tint[1], s.tint[2])
             uvScale(s.w / 4f, s.h / 8f)

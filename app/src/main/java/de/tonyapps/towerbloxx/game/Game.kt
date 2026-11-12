@@ -37,6 +37,8 @@ data class GameConfig(
     /** Wechselnde Gebaeudeart alle 10 Stockwerke. */
     val cycleKinds: Boolean = false,
     val seed: Long = System.nanoTime(),
+    /** Vorgebaute Stockwerke, nur fuer die Pruefung im Emulator. */
+    val startFloors: Int = 0,
 )
 
 enum class GameEvent { SPAWN, DROP, LAND, PERFECT, MISS, CRASH, RESIDENT, ROOF, OVER, WIN, TICK }
@@ -151,6 +153,14 @@ class Game(val config: GameConfig, private val events: (Game, GameEvent) -> Unit
     val won get() = phase == Phase.WIN
     val topSurface get() = BASE_TOP + floors.size * H
     val hasBlock get() = phase == Phase.LOWERING || phase == Phase.HANGING || phase == Phase.FALLING
+
+    init {
+        repeat(config.startFloors) { n ->
+            floors += Floor(0f, kindFor(n), door = n == 0, residents = 0, perfect = true)
+            cum += 0f
+        }
+        camY = topSurface + 1.4f
+    }
 
     fun stats() = GameStats(config, floors.size, population, perfects, bestCombo, won)
 

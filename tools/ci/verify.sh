@@ -31,6 +31,13 @@ sleep 30; shot 13-quick-75s
 run --es mode quick --es theme night
 sleep 30; shot 20-quick-night
 
+run --es mode quick --es theme day --ei floors 60
+sleep 20; shot 21-quick-60
+run --es mode quick --es theme day --ei floors 175
+sleep 20; shot 22-space
+run --es mode quick --es theme night --ei floors 240
+sleep 20; shot 23-space-night
+
 run --es mode time --es theme day
 sleep 25; shot 30-time
 
@@ -41,9 +48,9 @@ run --es mode city --ei kind 1
 sleep 40; shot 50-city-build
 sleep 30; shot 51-city-build-end
 
-run --es mode party
-sleep 8; shot 60-party-start
-sleep 25; shot 61-party
+run --es mode party --es theme day
+sleep 10; shot 60-party-start
+sleep 30; shot 61-party
 
 run --es mode citymap; sleep 8; shot 70-citymap
 run --es mode challenges; sleep 8; shot 71-challenges
