@@ -22,8 +22,8 @@ class DebugPlayActivity : ComponentActivity() {
         enableEdgeToEdge()
         val mode = intent.getStringExtra("mode") ?: "quick"
         when (intent.getStringExtra("theme")) {
-            "night" -> Store.setTheme(ThemeMode.DARK)
-            "day" -> Store.setTheme(ThemeMode.LIGHT)
+            "night" -> Store.changeTheme(ThemeMode.DARK)
+            "day" -> Store.changeTheme(ThemeMode.LIGHT)
         }
         val start = when (mode) {
             "time" -> Screen.Play(listOf(Modes.time().copy(seed = 7)))

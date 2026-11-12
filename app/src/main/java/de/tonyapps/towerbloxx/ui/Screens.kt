@@ -397,16 +397,16 @@ fun SettingsScreen(onBack: () -> Unit, onNews: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             Card {
                 Text(tr(R.string.s_game), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subColor())
-                ToggleRow(tr(R.string.s_sound), Store.sound) { Store.setSound(it); Audio.soundOn = it }
-                ToggleRow(tr(R.string.s_music), Store.music) { Store.setMusic(it); Audio.musicOn = it }
-                ToggleRow(tr(R.string.s_vibration), Store.vibration) { Store.setVibration(it); Audio.vibrationOn = it; if (it) Audio.buzz(30) }
+                ToggleRow(tr(R.string.s_sound), Store.sound) { Store.changeSound(it); Audio.soundOn = it }
+                ToggleRow(tr(R.string.s_music), Store.music) { Store.changeMusic(it); Audio.musicOn = it }
+                ToggleRow(tr(R.string.s_vibration), Store.vibration) { Store.changeVibration(it); Audio.vibrationOn = it; if (it) Audio.buzz(30) }
                 Spacer(Modifier.height(8.dp))
                 Text(tr(R.string.s_theme), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = textColor())
                 Spacer(Modifier.height(6.dp))
                 Segmented(
                     listOf(tr(R.string.theme_system), tr(R.string.theme_light), tr(R.string.theme_dark)),
                     Store.theme.ordinal,
-                ) { Store.setTheme(ThemeMode.entries[it]) }
+                ) { Store.changeTheme(ThemeMode.entries[it]) }
             }
             Spacer(Modifier.height(12.dp))
             Card {

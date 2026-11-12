@@ -39,10 +39,10 @@ object Store {
         theme = runCatching { ThemeMode.valueOf(prefs.getString("theme", "SYSTEM")!!) }.getOrDefault(ThemeMode.SYSTEM)
     }
 
-    fun setSound(v: Boolean) { sound = v; prefs.edit().putBoolean("sound", v).apply() }
-    fun setMusic(v: Boolean) { music = v; prefs.edit().putBoolean("music", v).apply() }
-    fun setVibration(v: Boolean) { vibration = v; prefs.edit().putBoolean("vibration", v).apply() }
-    fun setTheme(v: ThemeMode) { theme = v; prefs.edit().putString("theme", v.name).apply() }
+    fun changeSound(v: Boolean) { sound = v; prefs.edit().putBoolean("sound", v).apply() }
+    fun changeMusic(v: Boolean) { music = v; prefs.edit().putBoolean("music", v).apply() }
+    fun changeVibration(v: Boolean) { vibration = v; prefs.edit().putBoolean("vibration", v).apply() }
+    fun changeTheme(v: ThemeMode) { theme = v; prefs.edit().putString("theme", v.name).apply() }
 
     // ------------------------------------------------------------ Ruhmeshalle
 
