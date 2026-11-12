@@ -593,16 +593,28 @@ object Art {
     const val SPRITE_SPARKLE = 12
     const val SPRITE_BIRD = 13
     const val SPRITE_SHADOW = 14
+    const val SPRITE_PLANET = 15
+    const val SPRITE_ASTEROID = 16
+    const val SPRITE_ASTRONAUT = 17
+    const val SPRITE_FENCE = 18
+    const val SPRITE_WORKER = 19 // 19..20
+    const val SPRITE_CONE = 21
+    const val SPRITE_POLE = 22
+    const val SPRITE_MOON = 23
+
+    private const val ROWS = 6
 
     fun spriteUv(cell: Int): FloatArray {
         val cx = cell % 4
         val cy = cell / 4
         val e = 2f / 1024f
-        return floatArrayOf(cx * 0.25f + e, cy * 0.25f + e, (cx + 1) * 0.25f - e, (cy + 1) * 0.25f - e)
+        val rh = 1f / ROWS
+        val ev = 2f / (256f * ROWS)
+        return floatArrayOf(cx * 0.25f + e, cy * rh + ev, (cx + 1) * 0.25f - e, (cy + 1) * rh - ev)
     }
 
     fun sprites(): Bitmap {
-        val bmp = Bitmap.createBitmap(1024, 1024, Bitmap.Config.ARGB_8888)
+        val bmp = Bitmap.createBitmap(1024, 256 * ROWS, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val canopies = listOf(
             0xFFE84A4A.toInt() to 0xFFFFFFFF.toInt(),
@@ -621,6 +633,15 @@ object Art {
         cell(c, SPRITE_SPARKLE) { sparkle(it) }
         cell(c, SPRITE_BIRD) { bird(it) }
         cell(c, SPRITE_SHADOW) { shadow(it) }
+        cell(c, SPRITE_PLANET) { planet(it) }
+        cell(c, SPRITE_ASTEROID) { asteroid(it) }
+        cell(c, SPRITE_ASTRONAUT) { astronaut(it) }
+        cell(c, SPRITE_FENCE) { fence(it) }
+        cell(c, SPRITE_WORKER) { worker(it, 0xFFFF8A1C.toInt(), 0xFF2F6FDB.toInt()) }
+        cell(c, SPRITE_WORKER + 1) { worker(it, 0xFFFFE14D.toInt(), 0xFFE8643C.toInt()) }
+        cell(c, SPRITE_CONE) { cone(it) }
+        cell(c, SPRITE_POLE) { pole(it) }
+        cell(c, SPRITE_MOON) { moon(it) }
         return bmp
     }
 
@@ -784,5 +805,121 @@ object Art {
         c.drawOval(RectF(8f, 70f, 248f, 186f), paint().apply {
             shader = RadialGradient(128f, 128f, 120f, alpha(Color.BLACK, 0.45f), alpha(Color.BLACK, 0f), Shader.TileMode.CLAMP)
         })
+    }
+
+    // ------------------------------------------------------------ Weltraum und Baustelle
+
+    private fun planet(c: Canvas) {
+        val ring = RectF(10f, 104f, 246f, 160f)
+        // hintere Ringhaelfte
+        c.save(); c.clipRect(0f, 0f, 256f, 132f)
+        c.drawOval(ring, stroke(0xFFFFD27A.toInt(), 12f)); c.restore()
+        c.drawCircle(128f, 128f, 76f, paint().apply {
+            shader = RadialGradient(98f, 96f, 120f, intArrayOf(0xFFFFE0A8.toInt(), 0xFFF29A4A.toInt(), 0xFF9C4A1E.toInt()), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP)
+        })
+        c.save(); c.clipPath(Path().apply { addCircle(128f, 128f, 76f, Path.Direction.CW) })
+        for (k in 0 until 5) c.drawRect(40f, 82f + k * 22f, 220f, 90f + k * 22f, fill(alpha(0xFF8A3A12.toInt(), 0.25f)))
+        c.restore()
+        c.drawCircle(128f, 128f, 76f, stroke(OUTLINE, 5f))
+        c.save(); c.clipRect(0f, 132f, 256f, 256f)
+        c.drawOval(ring, stroke(0xFFFFD27A.toInt(), 12f)); c.restore()
+    }
+
+    private fun asteroid(c: Canvas) {
+        val rnd = Random(77)
+        val p = Path()
+        for (k in 0 until 11) {
+            val a = k * 2 * PI / 11
+            val r = 78f + rnd.nextFloat() * 30f
+            val x = 128f + (r * cos(a)).toFloat()
+            val y = 128f + (r * sin(a)).toFloat() * 0.8f
+            if (k == 0) p.moveTo(x, y) else p.lineTo(x, y)
+        }
+        p.close()
+        c.drawPath(p, paint().apply {
+            shader = RadialGradient(100f, 100f, 140f, 0xFFE6E2DA.toInt(), 0xFF7E7A74.toInt(), Shader.TileMode.CLAMP)
+        })
+        for ((x, y, r) in listOf(Triple(100f, 110f, 16f), Triple(160f, 140f, 12f), Triple(120f, 160f, 9f))) {
+            c.drawCircle(x, y, r, fill(alpha(Color.BLACK, 0.2f)))
+            c.drawCircle(x - 2f, y - 2f, r * 0.7f, fill(alpha(Color.WHITE, 0.15f)))
+        }
+        c.drawPath(p, stroke(OUTLINE, 5f))
+    }
+
+    private fun astronaut(c: Canvas) {
+        c.drawRoundRect(RectF(96f, 120f, 160f, 200f), 20f, 20f, fill(0xFFF2F4F8.toInt()))
+        c.drawRoundRect(RectF(150f, 130f, 182f, 186f), 10f, 10f, fill(0xFFC9CED6.toInt()))
+        c.drawLine(100f, 140f, 66f, 112f, stroke(0xFFF2F4F8.toInt(), 22f))
+        c.drawLine(156f, 140f, 196f, 116f, stroke(0xFFF2F4F8.toInt(), 22f))
+        c.drawLine(112f, 196f, 100f, 236f, stroke(0xFFF2F4F8.toInt(), 24f))
+        c.drawLine(144f, 196f, 158f, 234f, stroke(0xFFF2F4F8.toInt(), 24f))
+        c.drawCircle(128f, 92f, 44f, fill(0xFFF2F4F8.toInt()))
+        c.drawOval(RectF(100f, 72f, 156f, 112f), paint().apply {
+            shader = LinearGradient(100f, 72f, 156f, 112f, 0xFF7FD3FF.toInt(), 0xFF1F3B63.toInt(), Shader.TileMode.CLAMP)
+        })
+        c.drawCircle(114f, 84f, 7f, fill(alpha(Color.WHITE, 0.8f)))
+        c.drawRect(112f, 150f, 144f, 166f, fill(0xFF3D8BFF.toInt()))
+        c.drawCircle(128f, 92f, 44f, stroke(OUTLINE, 5f))
+        c.drawRoundRect(RectF(96f, 120f, 160f, 200f), 20f, 20f, stroke(OUTLINE, 5f))
+    }
+
+    private fun fence(c: Canvas) {
+        for (k in 0 until 7) {
+            val x = 12f + k * 34f
+            val p = Path().apply { moveTo(x, 236f); lineTo(x, 112f); lineTo(x + 14f, 96f); lineTo(x + 28f, 112f); lineTo(x + 28f, 236f); close() }
+            c.drawPath(p, vGrad(96f, 236f, 0xFFE0A35C.toInt(), 0xFFB0743A.toInt()))
+            c.drawPath(p, stroke(alpha(OUTLINE, 0.7f), 3f))
+        }
+        c.drawRect(4f, 136f, 252f, 152f, fill(0xFFC98A47.toInt()))
+        c.drawRect(4f, 196f, 252f, 212f, fill(0xFFC98A47.toInt()))
+        c.drawRect(4f, 136f, 252f, 152f, stroke(alpha(OUTLINE, 0.7f), 3f))
+        c.drawRect(4f, 196f, 252f, 212f, stroke(alpha(OUTLINE, 0.7f), 3f))
+    }
+
+    private fun worker(c: Canvas, helmet: Int, shirt: Int) {
+        val skin = 0xFFF3C29B.toInt()
+        c.drawLine(116f, 196f, 108f, 244f, stroke(0xFF2C3E66.toInt(), 18f))
+        c.drawLine(140f, 196f, 148f, 244f, stroke(0xFF2C3E66.toInt(), 18f))
+        c.drawRoundRect(RectF(96f, 130f, 160f, 204f), 18f, 18f, fill(shirt))
+        c.drawRect(96f, 160f, 160f, 172f, fill(0xFFFFE14D.toInt()))
+        c.drawRoundRect(RectF(96f, 130f, 160f, 204f), 18f, 18f, stroke(OUTLINE, 4f))
+        c.drawLine(100f, 144f, 76f, 120f, stroke(skin, 13f))
+        c.drawLine(156f, 144f, 180f, 176f, stroke(skin, 13f))
+        c.drawCircle(128f, 104f, 26f, fill(skin))
+        c.drawCircle(128f, 104f, 26f, stroke(OUTLINE, 4f))
+        c.drawArc(RectF(98f, 70f, 158f, 116f), 180f, 180f, true, fill(helmet))
+        c.drawRect(94f, 90f, 162f, 98f, fill(helmet))
+        c.drawArc(RectF(98f, 70f, 158f, 116f), 180f, 180f, true, stroke(OUTLINE, 4f))
+        c.drawCircle(119f, 108f, 3f, fill(OUTLINE))
+        c.drawCircle(137f, 108f, 3f, fill(OUTLINE))
+        c.drawArc(RectF(118f, 110f, 138f, 122f), 0f, 180f, false, stroke(OUTLINE, 3f))
+    }
+
+    private fun cone(c: Canvas) {
+        val p = Path().apply { moveTo(128f, 40f); lineTo(176f, 220f); lineTo(80f, 220f); close() }
+        c.drawPath(p, hGrad(80f, 176f, 0xFFFF9A4A.toInt(), 0xFFD8501C.toInt()))
+        c.save(); c.clipPath(p)
+        c.drawRect(60f, 110f, 200f, 136f, fill(Color.WHITE)); c.drawRect(60f, 166f, 200f, 190f, fill(Color.WHITE))
+        c.restore()
+        c.drawPath(p, stroke(OUTLINE, 5f))
+        c.drawRoundRect(RectF(60f, 214f, 196f, 236f), 6f, 6f, fill(0xFFD8501C.toInt()))
+        c.drawRoundRect(RectF(60f, 214f, 196f, 236f), 6f, 6f, stroke(OUTLINE, 4f))
+    }
+
+    private fun pole(c: Canvas) {
+        c.drawRect(120f, 20f, 136f, 256f, hGrad(120f, 136f, 0xFF9A6236.toInt(), 0xFF5E3519.toInt()))
+        c.drawRect(70f, 40f, 186f, 52f, fill(0xFF6B3E1F.toInt()))
+        for (x in listOf(78f, 112f, 144f, 178f)) c.drawCircle(x, 36f, 6f, fill(0xFFE6E8EC.toInt()))
+        c.drawRect(120f, 20f, 136f, 256f, stroke(OUTLINE, 3f))
+    }
+
+    private fun moon(c: Canvas) {
+        c.drawCircle(128f, 128f, 110f, paint().apply {
+            shader = RadialGradient(128f, 128f, 110f, alpha(0xFFFFF6D0.toInt(), 0.4f), alpha(0xFFFFF6D0.toInt(), 0f), Shader.TileMode.CLAMP)
+        })
+        c.drawCircle(128f, 128f, 70f, paint().apply {
+            shader = RadialGradient(108f, 104f, 90f, 0xFFFFFBEA.toInt(), 0xFFD9D2B8.toInt(), Shader.TileMode.CLAMP)
+        })
+        for ((x, y, r) in listOf(Triple(104f, 110f, 14f), Triple(150f, 150f, 10f), Triple(146f, 100f, 7f))) c.drawCircle(x, y, r, fill(alpha(0xFF8A836C.toInt(), 0.35f)))
     }
 }

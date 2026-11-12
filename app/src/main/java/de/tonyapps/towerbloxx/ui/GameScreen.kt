@@ -244,6 +244,14 @@ fun GameScreen(
         lifecycle.addObserver(obs)
         onDispose { lifecycle.removeObserver(obs) }
     }
+    // Party wie im Original im Querformat: beide Spieler nebeneinander
+    DisposableEffect(configs.size) {
+        val activity = context as? android.app.Activity
+        if (configs.size > 1) activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose {
+            if (configs.size > 1) activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
     DisposableEffect(Unit) {
         Audio.ambience(true)
         onDispose {
@@ -276,6 +284,7 @@ fun GameScreen(
                 if (i < session.huds.size - 1) Box(Modifier.width(4.dp).fillMaxHeight().background(Color.Black))
             }
         }
+        if (configs.size > 1) PartyGauge(session.huds.map { it.floors }, Modifier.align(Alignment.Center))
         // Pause-Knopf
         val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Box(
@@ -572,5 +581,39 @@ private fun PerfectBanner(hud: Hud, modifier: Modifier) {
             fill = if (good) Brush.verticalGradient(listOf(Color(0xFFFFF59D), Color(0xFFFFC531), Color(0xFFFF8F1C)))
             else Brush.verticalGradient(listOf(Color(0xFFFFC2B8), Color(0xFFE84A4A))),
         )
+    }
+}
+
+/** Hoehenvergleich in der Mitte des geteilten Bildschirms. */
+@Composable
+private fun PartyGauge(floors: List<Int>, modifier: Modifier) {
+    val max = ((floors.maxOrNull() ?: 0) + 6).coerceAtLeast(20)
+    val colors = listOf(Color(0xFF3D8BFF), Color(0xFFE8643C))
+    BoxWithConstraints(modifier.fillMaxHeight(0.62f).width(56.dp)) {
+        val barH = maxHeight
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .width(14.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(7.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFFFF5D7A), Color(0xFFFFC531), Color(0xFF4CC46A), Color(0xFF3D8BFF))))
+                .border(3.dp, Palette.Ink, RoundedCornerShape(7.dp)),
+        )
+        floors.forEachIndexed { i, f ->
+            val frac = (f.toFloat() / max).coerceIn(0f, 1f)
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(x = if (i == 0) (-14).dp else 14.dp, y = -(barH - 26.dp) * frac)
+                    .size(30.dp, 26.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(colors[i % 2])
+                    .border(2.dp, Color.White, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("$f", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+            }
+        }
     }
 }

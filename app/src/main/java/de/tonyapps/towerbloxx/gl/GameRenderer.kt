@@ -51,6 +51,7 @@ class GameRenderer(
     private var nightTowerTex = 0
     private var spriteTex = 0
 
+    private var spaceK = 0f
     private var width = 1
     private var height = 1
     private var lastNanos = 0L
@@ -70,6 +71,8 @@ class GameRenderer(
     private val city = ArrayList<Skyscraper>()
     private val clouds = ArrayList<Cloud>()
     private val trees = ArrayList<FloatArray>()
+    /** x, y, z, Groesse, Zelle, Drehgeschwindigkeit */
+    private val space = ArrayList<FloatArray>()
 
     init {
         val rnd = Random(2024)
@@ -94,6 +97,24 @@ class GameRenderer(
             y += 3f + rnd.nextFloat() * 6f
         }
         clouds.sortBy { it.z }
+        var sy = 170f
+        while (sy < 1400f) {
+            val r = rnd.nextFloat()
+            val cell = when {
+                r < 0.12f -> Art.SPRITE_PLANET
+                r < 0.2f -> Art.SPRITE_MOON
+                r < 0.75f -> Art.SPRITE_ASTEROID
+                else -> Art.SPRITE_ASTRONAUT
+            }
+            val far = cell == Art.SPRITE_PLANET || cell == Art.SPRITE_MOON
+            space += floatArrayOf(
+                (rnd.nextFloat() - 0.5f) * (if (far) 30f else 16f), sy,
+                if (far) -30f - rnd.nextFloat() * 20f else -4f - rnd.nextFloat() * 10f,
+                if (far) 7f + rnd.nextFloat() * 6f else 1.2f + rnd.nextFloat() * 1.4f,
+                cell.toFloat(), (rnd.nextFloat() - 0.5f) * 1.2f,
+            )
+            sy += 4f + rnd.nextFloat() * 7f
+        }
         for (side in listOf(-1f, 1f)) for (k in 0 until 4) {
             trees += floatArrayOf(side * (4.2f + k * 1.9f + rnd.nextFloat()), -3.5f + rnd.nextFloat() * 4f, if (rnd.nextFloat() < 0.3f) 1f else 0f, 2.2f + rnd.nextFloat() * 0.8f)
         }
@@ -219,8 +240,10 @@ class GameRenderer(
         up[0] = view[1]; up[1] = view[5]; up[2] = view[9]
 
         val altitude = (g.camY / 160f).coerceIn(0f, 1f)
-        val skyTop: FloatArray
-        val skyBottom: FloatArray
+        // Ab etwa 150 Stockwerken geht es in den Weltraum
+        spaceK = smooth((g.camY - 140f) / 110f)
+        var skyTop: FloatArray
+        var skyBottom: FloatArray
         if (night) {
             skyTop = floatArrayOf(0.02f, 0.03f, 0.1f)
             skyBottom = mixc(floatArrayOf(0.16f, 0.17f, 0.36f), floatArrayOf(0.06f, 0.08f, 0.22f), altitude)
@@ -228,6 +251,8 @@ class GameRenderer(
             skyTop = mixc(floatArrayOf(0.3f, 0.6f, 0.95f), floatArrayOf(0.14f, 0.38f, 0.86f), altitude)
             skyBottom = mixc(floatArrayOf(0.8f, 0.92f, 1f), floatArrayOf(0.55f, 0.78f, 1f), altitude)
         }
+        skyTop = mixc(skyTop, floatArrayOf(0.01f, 0.01f, 0.05f), spaceK)
+        skyBottom = mixc(skyBottom, floatArrayOf(0.05f, 0.08f, 0.26f), spaceK)
         val fogColor = mixc(skyBottom, skyTop, 0.25f)
         drawSky(skyTop, skyBottom, g, aspect)
 
@@ -380,7 +405,7 @@ class GameRenderer(
 
         val top = g.camY + 12f
         val bottom = g.camY - 12f
-        val cloudAlpha = if (night) 0.35f else 1f
+        val cloudAlpha = (if (night) 0.35f else 1f) * (1f - spaceK)
         for (c in clouds) {
             if (c.y < bottom - 5f || c.y > top + 5f) continue
             var x = c.x + (g.time * c.speed) % 60f
@@ -391,13 +416,30 @@ class GameRenderer(
         val bx = ((g.time * 0.6f) % 70f) - 35f
         spr(Art.SPRITE_BALLOON, bx + g.camX * 0.5f, 34f + sin(g.time * 0.3f) * 1.5f, -18f, 3.2f, 3.2f, 0f, if (night) 0.5f else 1f)
         spr(Art.SPRITE_BALLOON, -bx * 0.8f + g.camX * 0.5f, 120f, -22f, 3.2f, 3.2f, 0f, if (night) 0.5f else 1f)
-        if (!night) for (k in 0 until 3) {
+        if (spaceK > 0f) {
+            for (o in space) {
+                if (o[1] < bottom - 8f || o[1] > top + 8f) continue
+                val drift = sin(g.time * 0.2f + o[1]) * 0.6f
+                spr(o[4].toInt(), o[0] + drift + g.camX * 0.6f, o[1], o[2], o[3], o[3], g.time * o[5], spaceK)
+            }
+        }
+        if (!night && g.camY < 50f) for (k in 0 until 3) {
             val t = g.time * 1.6f + k * 1.7f
             val x = ((t * 1.3f) % 40f) - 20f + g.camX
             spr(Art.SPRITE_BIRD, x, 12f + k * 2.5f + sin(t * 3f) * 0.3f, -8f, 0.9f, 0.6f + 0.2f * sin(t * 12f), 0f, 0.9f)
         }
 
         if (g.camY - 10f < 20f) {
+            // Baustelle: Zaun hinten, Mast, Arbeiter und Pylonen vorne
+            for (k in -3..3) {
+                if (k == 0) continue
+                spr(Art.SPRITE_FENCE, k * 2.1f, 0.95f, -3.2f, 2.2f, 2.2f, 0f, 1f)
+            }
+            spr(Art.SPRITE_POLE, -6.5f, 3.2f, -1.5f, 6.4f, 6.4f, 0f, 1f)
+            spr(Art.SPRITE_WORKER, -2.6f, 0.7f, 2.4f, 1.4f, 1.4f, sin(g.time * 3f) * 0.05f, 1f)
+            spr(Art.SPRITE_WORKER + 1, 2.8f, 0.7f, 1.8f, 1.4f, 1.4f, sin(g.time * 2.6f + 1f) * 0.05f, 1f)
+            spr(Art.SPRITE_CONE, -1.7f, 0.4f, 3.0f, 0.8f, 0.8f, 0f, 1f)
+            spr(Art.SPRITE_CONE, 1.8f, 0.4f, 3.1f, 0.8f, 0.8f, 0f, 1f)
             for (t in trees) {
                 spr(Art.SPRITE_SHADOW, t[0] + 0.3f, 0.06f, t[1], t[3] * 0.9f, t[3] * 0.35f, 0f, 0.8f)
                 spr(if (t[2] > 0f) Art.SPRITE_PINE else Art.SPRITE_TREE, t[0], t[3] / 2f, t[1], t[3], t[3], 0f, 1f)
@@ -436,7 +478,7 @@ class GameRenderer(
         sky.use()
         GLES30.glUniform3f(sky.u("uTop"), top[0], top[1], top[2])
         GLES30.glUniform3f(sky.u("uBottom"), bottom[0], bottom[1], bottom[2])
-        GLES30.glUniform1f(sky.u("uStars"), if (night) 1f else 0f)
+        GLES30.glUniform1f(sky.u("uStars"), max(if (night) 1f else 0f, spaceK))
         GLES30.glUniform1f(sky.u("uScroll"), g.camY * 0.01f)
         GLES30.glUniform2f(sky.u("uAspect"), aspect, 1f)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, quad)
@@ -477,6 +519,8 @@ class GameRenderer(
         return floatArrayOf(v[0] / l, v[1] / l, v[2] / l)
     }
 
-    @Suppress("unused")
-    private fun clamp01(v: Float) = min(1f, max(0f, v))
+    private fun smooth(x: Float): Float {
+        val t = min(1f, max(0f, x))
+        return t * t * (3f - 2f * t)
+    }
 }

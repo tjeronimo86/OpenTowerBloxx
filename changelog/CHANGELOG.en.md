@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1 – November 12, 2026
+- From about 150 floors you reach space: stars, planets, asteroids and astronauts
+- Construction site at the start with fence, workers, traffic cones and a power pole
+- Party in landscape like the original, with a height comparison in the middle
+
 ## 1.0 – November 12, 2026
 - First version: build towers in 3D, the crane swings, a tap drops the block
 - Perfect drops give bonuses and combos and keep the tower steady; crooked blocks make it sway

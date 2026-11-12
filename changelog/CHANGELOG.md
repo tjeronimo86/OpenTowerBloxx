@@ -1,5 +1,10 @@
 # Update-Verlauf
 
+## 1.1 – 12. November 2026
+- Ab etwa 150 Stockwerken geht es in den Weltraum: Sterne, Planeten, Asteroiden und Astronauten
+- Baustelle am Start mit Bauzaun, Bauarbeitern, Pylonen und Strommast
+- Party im Querformat wie im Original, mit Höhenvergleich in der Mitte
+
 ## 1.0 – 12. November 2026
 - Erste Version: Türme bauen mit 3D-Grafik, der Kran schwingt, ein Tipp lässt den Block fallen
 - Perfekte Treffer geben Bonus, Kombos und halten den Turm ruhig; schiefe Blöcke bringen ihn ins Schwanken
