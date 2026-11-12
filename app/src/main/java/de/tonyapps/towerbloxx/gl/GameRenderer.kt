@@ -98,8 +98,10 @@ class GameRenderer(
             val spread = 30f + -z * 1.1f
             var x = (rnd.nextFloat() - 0.5f) * 2f * spread
             // Hinter dem Turm eine Gasse frei lassen, damit Himmel und Tiefe zu sehen sind
-            val gap = 6f + -z * 0.12f
-            if (kotlin.math.abs(x) < gap) x += if (x < 0) -gap else gap
+            // Die Kamera schaut schraeg von rechts: die Sichtlinie hinter dem Turm liegt links
+            val gap = 7f + -z * 0.14f
+            val center = z * 0.354f
+            if (kotlin.math.abs(x - center) < gap) x += if (x < center) -gap else gap
             val w = 5f + rnd.nextFloat() * 6f
             val h = 14f + rnd.nextFloat() * rnd.nextFloat() * 110f
             val style = rnd.nextInt(3)
